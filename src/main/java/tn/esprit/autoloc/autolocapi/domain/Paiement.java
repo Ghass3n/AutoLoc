@@ -27,4 +27,8 @@ public class Paiement {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private ModePaiement modePaiement;
+
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "contrat_id")
+    private Contrat contrat;
 }
