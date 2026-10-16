@@ -1,64 +1,51 @@
 package tn.esprit.autoloc.autolocapi.service;
 
-import jakarta.persistence.EntityNotFoundException;
-import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import tn.esprit.autoloc.autolocapi.domain.Client;
+import tn.esprit.autoloc.autolocapi.exception.ResourceNotFoundException;
 import tn.esprit.autoloc.autolocapi.repository.IClientRepository;
+import tn.esprit.autoloc.autolocapi.util.BeanCopy;
 
 @Service
 @RequiredArgsConstructor
 public class ClientServiceImpl implements IClientService {
 
-    private static final ZoneId ZONE = ZoneId.of("Africa/Tunis");
-
     private final IClientRepository clientRepository;
 
     @Override
-    @Transactional
-    public Client create(Client client) {
-        if (client.getDateInscription() == null) {
-            client.setDateInscription(LocalDate.now(ZONE));
+    public Client create(Client entite) {
+        if (entite.getIdClient() != null) {
+            throw new IllegalArgumentException(
+                    "Un nouvel element ne doit pas avoir d'identifiant");
         }
-        return clientRepository.save(client);
+        return clientRepository.save(entite);
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public Client getById(Long id) {
-        return findOrThrow(id);
+    public Client findById(Long id) {
+        return clientRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Client", id));
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public List<Client> getAll() {
+    public List<Client> findAll() {
         return clientRepository.findAll();
     }
 
     @Override
-    @Transactional
-    public Client update(Long id, Client client) {
-        Client existing = findOrThrow(id);
-        existing.setNom(client.getNom());
-        existing.setPrenom(client.getPrenom());
-        existing.setEmail(client.getEmail());
-        existing.setTelephone(client.getTelephone());
-        existing.setNumPermis(client.getNumPermis());
-        return clientRepository.save(existing);
+    public Client update(Long id, Client entite) {
+        Client existant = findById(id);
+        BeanCopy.copyNonNull(entite, existant);
+        return clientRepository.save(existant);
     }
 
     @Override
-    @Transactional
-    public void delete(Long id) {
-        clientRepository.delete(findOrThrow(id));
-    }
-
-    private Client findOrThrow(Long id) {
-        return clientRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Client introuvable : " + id));
+    public void deleteById(Long id) {
+        if (!clientRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Client", id);
+        }
+        clientRepository.deleteById(id);
     }
 }
